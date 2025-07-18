@@ -13,6 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
     res.status(200).json(result.data);
   } catch (e: any) {
-    res.status(e.response?.status || 500).json({ message: e.response?.data?.message || '가입 실패' });
+    console.error('accept-invite API error:', e, e?.response?.data, e?.stack);
+    res.status(e.response?.status || 500).json({ message: e.response?.data?.message || '가입 실패', error: e });
   }
 } 

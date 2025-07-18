@@ -4,6 +4,7 @@ import Layout from '../../components/Layout';
 import { useAuth } from '../../store/auth';
 import Chat from '../../components/Chat';
 import api from '../../utils/api';
+import debounce from 'lodash.debounce';
 
 interface Ticket {
   id: string;
@@ -13,6 +14,8 @@ interface Ticket {
   status: string;
   createdAt: string;
   files: { id: string; name: string; url: string }[];
+  ccEmails?: string[];
+  company?: { name: string };
 }
 
 interface Comment {
@@ -32,6 +35,20 @@ export default function TicketDetailPage() {
   const [comment, setComment] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
+  const [statusEdit, setStatusEdit] = useState('');
+  const [ccEdit, setCcEdit] = useState('');
+  const [ccList, setCcList] = useState<string[]>([]);
+  const [ccSuggestions, setCcSuggestions] = useState<string[]>([]);
+  const [toast, setToast] = useState('');
+
+  // CC 자동완성 (유저 이메일 추천)
+  const fetchCcSuggestions = debounce(async (q: string) => {
+    if (!q) return setCcSuggestions([]);
+    try {
+      const res = await api.get(`/users?query=${q}`, { headers: { Authorization: `Bearer ${token}` } });
+      setCcSuggestions(res.data.users.map((u: any) => u.email).filter((email: string) => !ccList.includes(email)));
+    } catch { setCcSuggestions([]); }
+  }, 300);
 
   useEffect(() => {
     if (!token) {
@@ -45,13 +62,17 @@ export default function TicketDetailPage() {
         const t = res.data.ticket;
         setTicket({
           id: t.id,
-          ticketNo: `TKT-${new Date(t.createdAt).getFullYear()}${String(new Date(t.createdAt).getMonth()+1).padStart(2,'0')}${String(new Date(t.createdAt).getDate()).padStart(2,'0')}-${String(t.id).padStart(4,'0')}`,
+          ticketNo: t.ticketNo,
           title: t.title,
           content: t.content,
           status: t.status,
           createdAt: t.createdAt,
           files: (t.files || []).map((f: any) => ({ id: f.id, name: f.filename, url: f.url })),
+          ccEmails: t.ccEmails || [],
+          company: t.company || undefined,
         });
+        setStatusEdit(t.status);
+        setCcList(t.ccEmails || []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -59,6 +80,11 @@ export default function TicketDetailPage() {
     api.get(`/comments/ticket/${id}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => setComments(res.data.comments || []));
   }, [token, id, router]);
+
+  useEffect(() => {
+    if (ccEdit) fetchCcSuggestions(ccEdit);
+    else setCcSuggestions([]);
+  }, [ccEdit]);
 
   // 댓글 작성
   const handleComment = async (e: React.FormEvent) => {
@@ -99,11 +125,37 @@ export default function TicketDetailPage() {
     setEditMode(false);
   };
 
+  // 상태 변경
+  const handleStatusChange = async () => {
+    await api.put(`/tickets/${id}`, { status: statusEdit }, { headers: { Authorization: `Bearer ${token}` } });
+    setTicket(t => t ? { ...t, status: statusEdit } : t);
+    setToast('상태가 변경되었습니다.');
+    setTimeout(() => setToast(''), 2000);
+  };
+
+  // CC 추가
+  const handleAddCc = () => {
+    if (ccEdit && !ccList.includes(ccEdit)) {
+      setCcList([...ccList, ccEdit]);
+      setCcEdit('');
+    }
+  };
+  // CC 저장
+  const handleSaveCc = async () => {
+    await api.put(`/tickets/${id}`, { cc: ccList }, { headers: { Authorization: `Bearer ${token}` } });
+    setTicket(t => t ? { ...t, ccEmails: ccList } : t);
+  };
+  // CC 삭제
+  const handleRemoveCc = (email: string) => {
+    setCcList(ccList.filter(e => e !== email));
+  };
+
   if (loading) return <Layout><div>로딩 중...</div></Layout>;
   if (!ticket) return <Layout><div>티켓을 찾을 수 없습니다.</div></Layout>;
 
   return (
     <Layout>
+      {toast && <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow z-50">{toast}</div>}
       <div className="mb-10 p-8 bg-white rounded shadow">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">{ticket.title}</h1>
@@ -112,7 +164,55 @@ export default function TicketDetailPage() {
             <button onClick={handleDeleteTicket} className="text-xs text-red-600 underline">삭제</button>
           </div>
         </div>
-        <div className="text-gray-500 mb-3">티켓번호: {ticket.ticketNo} | 상태: {ticket.status} | 생성일: {ticket.createdAt}</div>
+        <div className="text-gray-500 mb-3">
+          <span className="font-semibold">티켓번호:</span> {ticket.ticketNo} |
+          <span className="font-semibold ml-2">상태:</span> {ticket.status}
+          <span className="ml-2">(변경:&nbsp;
+            <select value={statusEdit} onChange={e => setStatusEdit(e.target.value)} className="border rounded px-2 py-1">
+              <option value="NEW">NEW</option>
+              <option value="OPEN">OPEN</option>
+              <option value="PENDING">PENDING</option>
+              <option value="ON_HOLD">ON_HOLD</option>
+            </select>
+            <button onClick={handleStatusChange} className="ml-1 px-2 py-1 bg-blue-500 text-white rounded text-xs">변경</button>
+          )</span>
+          <span className="font-semibold ml-2">고객사:</span> {ticket.company?.name ? (
+            <a href={`/companies?name=${encodeURIComponent(ticket.company.name)}`} className="text-blue-600 underline hover:text-blue-800">{ticket.company.name}</a>
+          ) : '-'}
+          <span className="ml-2">생성일: {ticket.createdAt}</span>
+        </div>
+        {/* CC 표시 및 추가 UI */}
+        <div className="mb-2">
+          <span className="font-semibold">CC:</span>
+          {ticket.ccEmails && ticket.ccEmails.length > 0 ? (
+            ticket.ccEmails.map(email => (
+              <span key={email} className="ml-2 inline-block bg-gray-200 px-2 py-1 rounded">
+                {email}
+                <button onClick={() => handleRemoveCc(email)} className="ml-1 text-xs text-red-500">x</button>
+              </span>
+            ))
+          ) : <span className="ml-2 text-gray-400">없음</span>}
+          <div className="mt-2 flex gap-2 relative">
+            <input
+              type="email"
+              value={ccEdit}
+              onChange={e => setCcEdit(e.target.value)}
+              placeholder="이메일 추가"
+              className="border rounded px-2 py-1"
+              autoComplete="off"
+            />
+            <button onClick={handleAddCc} className="px-2 py-1 bg-gray-300 rounded">추가</button>
+            <button onClick={handleSaveCc} className="px-2 py-1 bg-blue-500 text-white rounded">저장</button>
+            {/* CC 자동완성 드롭다운 */}
+            {ccSuggestions.length > 0 && (
+              <ul className="absolute left-0 top-10 bg-white border rounded shadow z-10 w-full max-h-32 overflow-auto">
+                {ccSuggestions.map(email => (
+                  <li key={email} className="px-3 py-2 hover:bg-blue-100 cursor-pointer" onClick={() => { setCcEdit(email); setCcSuggestions([]); }}>{email}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
         <div className="mb-4 whitespace-pre-line text-lg">{ticket.content}</div>
         {editMode && (
           <div className="mt-2 p-4 border rounded bg-gray-50">

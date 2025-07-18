@@ -35,14 +35,13 @@ export async function sendMail({
   });
 }
 
-export async function getUserNotificationEmails(userId: number): Promise<string[]> {
+export async function getUserNotificationEmails(userId: string): Promise<string[]> {
   // Prisma import는 함수 내부에서 동적으로
   const { PrismaClient } = await import('@prisma/client');
   const prisma = new PrismaClient();
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return [];
-  if (!user.emailNotificationsEnabled) return [];
-  const emails = [user.email, ...(user.extraEmails || [])];
+  const emails = [user.email];
   // 중복 제거
   return Array.from(new Set(emails.filter(Boolean)));
 } 

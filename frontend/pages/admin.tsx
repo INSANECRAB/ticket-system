@@ -25,6 +25,7 @@ export default function AdminPage() {
   const { token, user, fetchUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   // 초대 관련 상태
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('CUSTOMER');
@@ -43,14 +44,20 @@ export default function AdminPage() {
   const fetchUsersAndInvites = () => {
     if (!token) return;
     setLoading(true);
+    setFetchError('');
     Promise.all([
       api.get('/users', { headers: { Authorization: `Bearer ${token}` } }),
       api.get('/users/invites', { headers: { Authorization: `Bearer ${token}` } })
     ]).then(([usersRes, invitesRes]) => {
-      setUsers(usersRes.data.users);
-      setInvites(invitesRes.data.invites);
+      setUsers(Array.isArray(usersRes.data?.users) ? usersRes.data.users : []);
+      setInvites(Array.isArray(invitesRes.data?.invites) ? invitesRes.data.invites : []);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch((e) => {
+      setFetchError(e?.response?.data?.message || '데이터를 불러오지 못했습니다.');
+      setUsers([]);
+      setInvites([]);
+      setLoading(false);
+    });
   };
 
   useEffect(() => {
@@ -61,11 +68,15 @@ export default function AdminPage() {
     setTemplateLoading(true);
     api.get('/email-template/invite', { headers: { Authorization: `Bearer ${token}` } })
       .then(res => {
-        setTemplateSubject(res.data.subject);
-        setTemplateBody(res.data.body);
+        setTemplateSubject(res.data?.subject || '');
+        setTemplateBody(res.data?.body || '');
         setTemplateLoading(false);
       })
-      .catch(() => setTemplateLoading(false));
+      .catch(() => {
+        setTemplateSubject('');
+        setTemplateBody('');
+        setTemplateLoading(false);
+      });
   }, [token, user, fetchUser]);
 
   // 접근 차단: ADMIN이 아니면
@@ -75,6 +86,17 @@ export default function AdminPage() {
         <div className="max-w-xl mx-auto mt-16 text-center text-red-600 text-lg font-bold">관리자만 접근할 수 있습니다.</div>
       </Layout>
     );
+  }
+
+  // 로딩/에러/빈 데이터 방어 분기
+  if (loading) {
+    return <Layout><div className="text-center mt-16">로딩 중...</div></Layout>;
+  }
+  if (fetchError) {
+    return <Layout><div className="text-center mt-16 text-red-600">{fetchError}</div></Layout>;
+  }
+  if (!Array.isArray(users) || !Array.isArray(invites)) {
+    return <Layout><div className="text-center mt-16 text-red-600">데이터를 불러오지 못했습니다.</div></Layout>;
   }
 
   // 사용자 초대 핸들러
@@ -131,10 +153,13 @@ export default function AdminPage() {
     }
   };
 
-  const allEmails = new Set([...users.map(u => u.email), ...invites.filter(i => !i.accepted).map(i => i.email)]);
+  const allEmails = new Set([
+    ...((Array.isArray(users) ? users : []).map(u => u.email)),
+    ...((Array.isArray(invites) ? invites : []).filter(i => !i.accepted).map(i => i.email))
+  ]);
   const mergedList = Array.from(allEmails).map(email => {
-    const user = users.find(u => u.email === email);
-    const invite = invites.find(i => i.email === email && !i.accepted);
+    const user = (Array.isArray(users) ? users : []).find(u => u.email === email);
+    const invite = (Array.isArray(invites) ? invites : []).find(i => i.email === email && !i.accepted);
     return {
       email,
       name: user?.name || '-',
@@ -202,7 +227,7 @@ export default function AdminPage() {
           </button>
         </div>
         {/* 기존 사용자 목록 테이블은 그대로 유지 */}
-        {loading ? <div>로딩 중...</div> : (
+        {Array.isArray(mergedList) && mergedList.length > 0 ? (
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-100">
@@ -250,6 +275,8 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+        ) : (
+          <div className="text-center text-gray-500">표시할 사용자가 없습니다.</div>
         )}
       </div>
     </Layout>

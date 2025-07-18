@@ -11,6 +11,7 @@ interface Ticket {
   title: string;
   status: string;
   createdAt: string;
+  company?: { name: string };
 }
 
 export default function TicketListPage() {
@@ -49,11 +50,12 @@ export default function TicketListPage() {
         <div className="text-center text-gray-400 py-12">티켓이 없습니다.</div>
       ) : (
         <div className="overflow-x-auto rounded-xl shadow-lg bg-white">
-          <table className="w-full min-w-[600px]">
+          <table className="w-full min-w-[700px]">
             <thead>
               <tr className="bg-gray-100 text-gray-700 text-sm">
                 <th className="py-3 px-4 text-left font-semibold">번호</th>
                 <th className="py-3 px-4 text-left font-semibold">제목</th>
+                <th className="py-3 px-4 text-left font-semibold">고객사</th>
                 <th className="py-3 px-4 text-left font-semibold">상태</th>
                 <th className="py-3 px-4 text-left font-semibold">생성일</th>
               </tr>
@@ -67,8 +69,15 @@ export default function TicketListPage() {
                 >
                   <td className="py-3 px-4 font-mono text-xs text-gray-700">{ticket.ticketNo}</td>
                   <td className="py-3 px-4 text-base text-gray-900 font-medium">{ticket.title}</td>
+                  <td className="py-3 px-4 text-sm text-gray-700">{ticket.company?.name || '-'}</td>
                   <td className="py-3 px-4">
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${ticket.status === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>{ticket.status}</span>
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${
+                      ticket.status === 'OPEN' ? 'bg-green-100 text-green-700' :
+                      ticket.status === 'NEW' ? 'bg-blue-100 text-blue-700' :
+                      ticket.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                      ticket.status === 'ON_HOLD' ? 'bg-gray-300 text-gray-700' :
+                      'bg-gray-200 text-gray-600'
+                    }`}>{ticket.status}</span>
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-500">{new Date(ticket.createdAt).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
                 </tr>

@@ -28,13 +28,8 @@ services:
     build: ./backend
     volumes:
       - ./backend:/app
-    environment:
-      DATABASE_URL: postgres://ticket:ticketpw@db:5432/ticketdb
-      MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: minio
-      MINIO_SECRET_KEY: minio123
-      MINIO_BUCKET: ticket-files
+    env_file:
+      - backend/.env
     ports:
       - '4000:4000'
     depends_on:

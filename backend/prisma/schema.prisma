@@ -13,72 +13,99 @@ enum Role {
   CUSTOMER
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String?
-  role      Role     @default(CUSTOMER)
-  invited   Boolean  @default(false)
+model Company {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  domain    String?  // 이메일 도메인(@ 뒤)
+  users     User[]   // 1:N 관계
   tickets   Ticket[]
-  comments  Comment[]
-  messages  Message[]
-  filesUploaded File[] @relation("UserFilesUploaded")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  emailNotificationsEnabled Boolean @default(true) // 메일 수신 여부
-  extraEmails String[] // 추가 이메일
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  name       String?
+  password   String?
+  companyId  String?
+  company    Company? @relation(fields: [companyId], references: [id])
+  role       UserRole @default(CUSTOMER)
+  tickets    Ticket[] @relation("UserTickets")
+  ownedTickets Ticket[] @relation("TicketOwner")
+  comments   Comment[]
+  messages   Message[]
+  filesUploaded File[] @relation("UserFilesUploaded")
+  extraEmails String[] // 추가
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  AGENT
+  CUSTOMER
 }
 
 model Ticket {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String
-  status    String   @default("open")
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
-  comments  Comment[]
-  messages  Message[]
-  files     File[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  cc        String[] // CC 이메일 리스트
-  companyName String? // 고객사명
+  id         String   @id @default(uuid())
+  ticketNo   String   @unique
+  title      String
+  content    String
+  companyId  String?
+  company    Company? @relation(fields: [companyId], references: [id])
+  userId     String
+  user       User     @relation("UserTickets", fields: [userId], references: [id])
+  ownerId    String?
+  owner      User?    @relation("TicketOwner", fields: [ownerId], references: [id])
+  ccEmails   String[]
+  status     TicketStatus @default(NEW)
+  comments   Comment[]
+  messages   Message[]
+  files      File[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum TicketStatus {
+  NEW
+  OPEN
+  PENDING
+  ON_HOLD
 }
 
 model Comment {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   content   String
   ticket    Ticket   @relation(fields: [ticketId], references: [id])
-  ticketId  Int
+  ticketId  String
   user      User     @relation(fields: [userId], references: [id])
-  userId    Int
+  userId    String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
 }
 
 model Message {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   content   String
   ticket    Ticket   @relation(fields: [ticketId], references: [id])
-  ticketId  Int
+  ticketId  String
   user      User     @relation(fields: [userId], references: [id])
-  userId    Int
+  userId    String
   createdAt DateTime @default(now())
-  files     File[]   @relation("MessageFiles")
+  updatedAt DateTime @updatedAt @default(now())
 }
 
 model File {
-  id        Int      @id @default(autoincrement())
-  url       String
-  filename  String
-  ticket    Ticket?  @relation(fields: [ticketId], references: [id])
-  ticketId  Int?
-  uploadedBy User?   @relation("UserFilesUploaded", fields: [uploadedById], references: [id])
-  uploadedById Int?
-  message     Message? @relation("MessageFiles", fields: [messageId], references: [id])
-  messageId   Int?
-  createdAt DateTime @default(now())
-  size        Int?
+  id           String   @id @default(uuid())
+  filename     String
+  url          String?
+  ticket       Ticket?  @relation(fields: [ticketId], references: [id])
+  ticketId     String?
+  uploadedBy   User?    @relation("UserFilesUploaded", fields: [uploadedById], references: [id])
+  uploadedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt @default(now())
 }
 
 model InviteEmailTemplate {
