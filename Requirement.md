@@ -1,7 +1,9 @@
 # Ticket System 요구사항 및 구현 현황
 
+*For English version, please scroll down.*
+
 ## 1. 주요 요구사항
-- Next.js, Express, Prisma, PostgreSQL, MinIO, Socket.io, Tailwind 기반 Zendesk 스타일 고객 티켓 시스템
+- Next.js, Express, Prisma, PostgreSQL, MinIO, Socket.io, Tailwind 기반 고객 티켓 시스템
 - **주요 기능**
   - 이메일 초대 기반 회원가입
   - 비밀번호 재설정
@@ -103,4 +105,113 @@
 - 티켓 상세 UI의 상태/고객사/CC를 왼쪽 사이드바로 분리하는 구조 개선(추가 요청 가능)
 - 상태 변경/내용 수정 시 알림 메일, 히스토리 등 실무적 요구사항 반영
 - 프론트엔드/백엔드 타입/필드 일치, Prisma Client 재생성, npm 패키지 타입 설치 등 반복적 개선
-- 실시간 채팅, 파일 첨부, 이메일 알림 등 부가 기능 정상 동작 확인 
+- 실시간 채팅, 파일 첨부, 이메일 알림 등 부가 기능 정상 동작 확인
+
+---
+
+# Ticket System Requirements and Implementation Status (English)
+
+## 1. Main Requirements
+- Customer ticket system based on Next.js, Express, Prisma, PostgreSQL, MinIO, Socket.io, Tailwind
+- **Key Features**
+  - Email invitation-based registration
+  - Password reset
+  - User permission management (admin/agent/customer)
+  - Real-time chat
+  - File attachments
+  - Email notifications
+  - Unique ticket numbers
+- **Admin Only**
+  - User management (list, invite, permission change, delete)
+  - Invitation email template management
+
+---
+
+## 2. Implementation Status
+
+### [O] Admin/User Management
+- [O] User list/invite/delete/permission change accessible only to admins
+- [O] Automatic list refresh and feedback on invite/signup/delete/permission change
+- [O] Separate and integrated display of invited users and registered users via Invite/User tables
+- [O] Invitation deletion (delete from Invite table)
+- [O] Invitation email template CRUD (InviteEmailTemplate)
+
+### [O] Authentication/Invitation/Registration
+- [O] Invitation email sending and token-based registration
+- [O] Password rules and setting/reset
+- [O] accept-invite API and frontend page
+- [O] Password reset (email sending)
+
+### [O] Real-time Chat/File Attachments
+- [O] Socket.io-based real-time chat
+- [O] File attachments and MinIO integration
+
+### [O] Unique Ticket Numbers/Basic Ticket Features
+- [O] Ticket creation/inquiry/status management
+- [O] Unique ticket number generation
+
+### [O] Admin UX Improvements
+- [O] Success/failure messages, status-based categorization, automatic refresh, etc.
+
+---
+
+## 3. Test Status
+- [O] Normal operation of invite/signup/delete/permission change/invitation email template management on admin page
+- [O] Normal operation of admin-centered UX for invite/signup/delete/status management
+- [O] Normal operation of automatic refresh and feedback for actions like invite/signup/delete
+- [O] Exception handling confirmed: 404 when no invitation email template, 400/500 for invalid tokens/signup
+- [O] Normal operation confirmed when calling backend API directly with curl
+- [△] 500 error during accept-invite (signup) from frontend → diagnosing and fixing body transmission/parsing issues
+- [△] Some React minified errors (418/423/425) → need to add defensive code for API failures
+
+---
+
+## 4. Future Tasks/Improvement Issues
+- [ ] Complete resolution of frontend accept-invite 500 error (final check of body transmission/parsing issues)
+- [ ] Add defensive code and improve UX for API failures (undefined/null) in frontend
+- [ ] Strengthen admin account password recovery UX (email sending, etc.)
+- [ ] Test automation (e2e, integration tests, etc.) and documentation
+- [ ] Security/environment variable checks in production deployment environment
+- [ ] Additional practical diagnostics/operation guides
+
+---
+
+## 5. Notes/Special Considerations
+- Most core admin-centered functions and UX for invite/signup/delete/status management are implemented and improved
+- Invitation status management completed with introduction of Invite table
+- Some APIs (body parsing, etc.) and frontend defensive code, error UX need additional improvements
+
+---
+
+## 6. Recent Additions/Ongoing Issues and Improvements (2024.07)
+
+### [O] Docker/Environment Variables/Network Issues Resolved
+- Frontend API requests using Docker network name (backend) not recognized by browser → specified as localhost in .env, docker-compose
+- Practical diagnosis/action for .env file location/application issues, container rebuild, environment variable application order
+
+### [O] Prisma Migration/DB Schema Changes
+- Changed id, ticketId, userId types from Int→String(uuid), resolved foreign key type mismatch migration errors
+- When existing data remains, directly added columns/updated/applied constraints with SQL for NOT NULL column additions
+- Added ticketNo, extraEmails, url columns and applied migrations
+
+### [O] Admin/User/Ticket Data Issues
+- User table empty or admin account role incorrectly saved as CUSTOMER causing admin menu not to show → directly created admin account/changed role with SQL
+- Foreign key constraint error when userId missing during ticket creation → checked/created user data
+
+### [O] Ticket/Detail/List/Status/CC/Company Name Improvements
+- Clear display of ticketNo, status, company.name, ccEmails in ticket detail/list
+- Generate/save ticketNo as date+serial number (TKT-YYYYMMDD-0001) instead of uuid-based
+- Frontend UI automatic improvements: status change dropdown/button, CC display/add/save UI, company name click navigation, status change notifications (Toast)
+- Added CC input field autocomplete (dropdown, existing user email recommendations)
+- Send notification emails to related parties (ticket owner, CC, comment/message participants) on status change/content modification, include full ticket content, status change history, comment/message history in email body
+
+### [O] Other Practical Diagnostics/Actions
+- When containers die immediately: node dist/app.js not listening, or Prisma migration/environment variable/build issues
+- Container internal access (run --entrypoint sh), direct node dist/app.js execution, check .env/environment variables/file existence
+- 404/inquiry impossible due to existing ticket data and schema mismatch, deletion impossible due to foreign key constraints → delete child tables (Comment, Message, File, etc.) first, then delete Ticket
+
+### [In Progress] Remaining/Ongoing Issues
+- Structural improvement to separate ticket detail UI status/company/CC to left sidebar (additional requests possible)
+- Reflect practical requirements like notification emails and history for status changes/content modifications
+- Repetitive improvements: frontend/backend type/field matching, Prisma Client regeneration, npm package type installation
+- Confirm normal operation of additional features like real-time chat, file attachments, email notifications

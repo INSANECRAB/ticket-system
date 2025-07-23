@@ -1,7 +1,9 @@
-# Ticket System (Zendesk 스타일)
+# Ticket System
+
+*For English version, please scroll down.*
 
 ## 프로젝트 개요
-고객 지원을 위한 최신형 티켓 시스템입니다. 이메일 초대 기반 회원가입, 실시간 채팅, 파일 첨부, 권한 관리, 이메일 알림 등 Zendesk와 유사한 주요 기능을 제공합니다.
+고객 지원을 위한 최신형 티켓 시스템입니다. 이메일 초대 기반 회원가입, 실시간 채팅, 파일 첨부, 권한 관리, 이메일 알림 등 주요 기능을 제공합니다.
 
 ## 기술 스택
 - **Frontend**: Next.js, React, TypeScript, Tailwind CSS, Zustand
@@ -54,4 +56,64 @@ ticket-system/
 ---
 
 ## 시작 방법
-(각 폴더별 README 참고) 
+(각 폴더별 README 참고)
+
+---
+
+# Ticket System (English)
+
+## Project Overview
+A modern ticket system for customer support. Provides key features including email invitation-based registration, real-time chat, file attachments, permission management, and email notifications.
+
+## Tech Stack
+- **Frontend**: Next.js, React, TypeScript, Tailwind CSS, Zustand
+- **Backend**: Node.js, Express, TypeScript, Prisma, PostgreSQL, Socket.io
+- **Others**: Docker, Nodemailer, AWS S3 (file attachments), ESLint/Prettier, Vitest/Jest
+
+## Key Features
+- Email invitation-based registration and password reset
+- User permission management (admin/agent/customer)
+- Real-time chat and file attachments (chat/tickets)
+- Email notifications on ticket creation/updates (with attachments)
+- Automatic unique ticket number generation
+
+## Folder Structure and Key Files
+```
+ticket-system/
+├── backend/         # Backend server source code (Express, Prisma, Socket.io)
+│   ├── Dockerfile           # Docker build file for backend
+│   ├── package.json         # Backend dependencies and scripts
+│   ├── tsconfig.json        # Backend TypeScript configuration
+│   ├── prisma/              # Prisma ORM related files
+│   │   └── schema.prisma    # DB models and schema definition
+│   └── src/                 # Backend source code
+│       └── app.ts           # Express server entry point, Socket.io, Prisma client initialization
+├── frontend/        # Frontend source code (Next.js, React)
+│   ├── Dockerfile           # Docker build file for frontend
+│   ├── package.json         # Frontend dependencies and scripts
+│   ├── tsconfig.json        # Frontend TypeScript configuration
+│   └── pages/               # Next.js pages
+│       └── index.tsx        # Main page (welcome message)
+├── docker-compose.yml # Integrated execution environment for all services (backend, frontend, db, minio)
+└── README.md          # Project description file
+```
+
+### Folder/File Function Summary
+- **backend/**: Implements core business logic including server API, real-time chat, DB integration, authentication, file upload
+  - **Dockerfile**: Backend container build configuration
+  - **package.json**: Server dependencies and execution scripts
+  - **tsconfig.json**: TypeScript compilation settings
+  - **prisma/schema.prisma**: DB model definitions for User, Ticket, Comment, Message, File, etc.
+  - **src/app.ts**: Express server, Socket.io, Prisma client initialization and middleware setup
+- **frontend/**: Implements user UI, ticket/chat/login pages and components
+  - **Dockerfile**: Frontend container build configuration
+  - **package.json**: Frontend dependencies and execution scripts
+  - **tsconfig.json**: TypeScript compilation settings
+  - **pages/index.tsx**: Main (home) page
+- **docker-compose.yml**: Integrated execution environment configuration for all services (backend, frontend, db, minio)
+- **README.md**: Project description and structure guide
+
+---
+
+## Getting Started
+(Refer to README in each folder)
