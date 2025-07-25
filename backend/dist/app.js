@@ -13,6 +13,7 @@ const user_1 = __importDefault(require("./routes/user"));
 const ticket_1 = __importDefault(require("./routes/ticket"));
 const comment_1 = __importDefault(require("./routes/comment"));
 const emailTemplate_1 = __importDefault(require("./routes/emailTemplate"));
+const company_1 = __importDefault(require("./routes/company"));
 const minio_1 = require("./utils/minio");
 const email_1 = require("./utils/email");
 const app = (0, express_1.default)();
@@ -27,12 +28,13 @@ app.use('/users', user_1.default);
 app.use('/tickets', ticket_1.default);
 app.use('/comments', comment_1.default);
 app.use('/email-template', emailTemplate_1.default);
+app.use('/companies', company_1.default);
 app.get('/health', (req, res) => res.send('OK'));
 // TODO: 라우터 연결, 인증, 파일 업로드 등
 io.on('connection', (socket) => {
     console.log('Socket connected:', socket.id);
     socket.on('join', async ({ ticketId, userName }) => {
-        if (!ticketId || isNaN(Number(ticketId))) {
+        if (!ticketId) {
             socket.emit('history', []);
             return;
         }
@@ -40,7 +42,7 @@ io.on('connection', (socket) => {
         console.log(`${userName} joined ticket ${ticketId}`);
         // 이전 메시지 + 파일 불러오기
         const messages = await prisma.message.findMany({
-            where: { ticketId: Number(ticketId) },
+            where: { ticketId },
             orderBy: { createdAt: 'asc' },
             include: { user: true },
         });
@@ -53,37 +55,33 @@ io.on('connection', (socket) => {
     });
     socket.on('chat', async (msg) => {
         // msg: { ticketId, user, content, createdAt, file }
-        if (!msg.ticketId || isNaN(Number(msg.ticketId))) {
+        if (!msg.ticketId) {
             // ticketId가 없거나 잘못된 값이면 메시지 저장하지 않고 무시
             return;
         }
         let user = await prisma.user.findUnique({ where: { email: msg.user } });
         if (!user) {
-            user = await prisma.user.create({ data: { email: msg.user, role: 'CUSTOMER', invited: false, password: 'changeme' } });
+            user = await prisma.user.create({ data: { email: msg.user, role: 'CUSTOMER', password: 'changeme' } });
         }
         // 메시지 저장
         const message = await prisma.message.create({
             data: {
                 content: msg.content,
                 userId: user.id,
-                ticketId: Number(msg.ticketId),
+                ticketId: msg.ticketId,
             },
         });
         // 파일 저장(있으면)
         let fileData = null;
         if (msg.file) {
-            // msg.file: { name, data(base64), mimetype }
             const buffer = Buffer.from(msg.file.data, 'base64');
-            const { url, originalFileName } = await (0, minio_1.uploadFileToMinio)(msg.file.name, buffer, msg.file.mimetype);
+            const { originalFileName } = await (0, minio_1.uploadFileToMinio)(msg.file.name, buffer, msg.file.mimetype);
             const file = await prisma.file.create({
                 data: {
-                    filename: originalFileName.normalize('NFC'), // 반드시 NFC로 정규화해서 저장
-                    url,
-                    size: buffer.length,
-                    messageId: message.id,
+                    filename: originalFileName.normalize('NFC'),
                 },
             });
-            fileData = { filename: file.filename, url: file.url };
+            fileData = { filename: file.filename };
         }
         // 알림 메일 발송
         try {
@@ -92,13 +90,13 @@ io.on('connection', (socket) => {
                 include: { user: true },
             });
             if (ticket) {
-                const to = [ticket.user.email];
+                const to = ticket.user ? [ticket.user.email] : [];
                 if (user.email !== ticket.user.email)
                     to.push(user.email); // 고객/상담원 모두에게
                 await (0, email_1.sendMail)({
                     to: to.join(','),
                     subject: `[티켓시스템] 새 채팅 메시지 알림`,
-                    html: `<p>티켓: ${ticket.title}</p><p>${user.email}: ${msg.content}</p>${fileData ? `<p>파일: <a href='${fileData.url}'>${fileData.filename}</a></p>` : ''}`
+                    html: `<p>티켓: ${ticket.title}</p><p>${user.email}: ${msg.content}</p>${fileData ? `<p>파일: <a href='${fileData.filename}'>${fileData.filename}</a></p>` : ''}`
                 });
             }
         }
@@ -114,6 +112,7 @@ io.on('connection', (socket) => {
         });
     });
 });
+// 서버 실행
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
     console.log(`Backend listening on port ${PORT}`);

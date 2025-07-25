@@ -16,9 +16,33 @@ export default function NewTicketPage() {
   const [ccInput, setCcInput] = useState('');
   const [ccList, setCcList] = useState<string[]>([]);
   const [companyName, setCompanyName] = useState('');
+  const [companies, setCompanies] = useState<{id: string, name: string}[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [isDirectInput, setIsDirectInput] = useState(false);
+  const [userDefaultCompany, setUserDefaultCompany] = useState<{id: string, name: string} | null>(null);
+
+  React.useEffect(() => {
+    if (!token && typeof window !== 'undefined') {
+      router.push('/login');
+      return;
+    }
+    if (!token) return;
+    
+    // 고객사 목록과 사용자 정보 불러오기
+    Promise.all([
+      api.get('/tickets/companies', { headers: { Authorization: `Bearer ${token}` } }),
+      api.get('/users/me', { headers: { Authorization: `Bearer ${token}` } })
+    ]).then(([companiesRes, userRes]) => {
+      setCompanies(companiesRes.data.companies || []);
+      const user = userRes.data;
+      if (user.company) {
+        setUserDefaultCompany(user.company);
+        setSelectedCompanyId(user.company.id);
+      }
+    }).catch(console.error);
+  }, [token, router]);
 
   if (!token && typeof window !== 'undefined') {
-    router.push('/login');
     return null;
   }
 
@@ -42,7 +66,14 @@ export default function NewTicketPage() {
       formData.append('title', title);
       formData.append('content', content);
       formData.append('cc', JSON.stringify(ccList));
-      formData.append('companyName', companyName);
+      if (isDirectInput) {
+        formData.append('companyName', companyName);
+      } else if (selectedCompanyId) {
+        const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+        if (selectedCompany) {
+          formData.append('companyName', selectedCompany.name);
+        }
+      }
       if (file) formData.append('file', file);
       await api.post('/tickets', formData, { headers: { Authorization: `Bearer ${token}` } });
       router.push('/tickets');
@@ -73,14 +104,51 @@ export default function NewTicketPage() {
             onChange={e => setContent(e.target.value)}
             required
           />
-          {/* 고객사명 입력 */}
-          <input
-            type="text"
-            placeholder="고객사명 (선택)"
-            className="w-full px-3 py-2 border rounded"
-            value={companyName}
-            onChange={e => setCompanyName(e.target.value)}
-          />
+          {/* 고객사 선택 */}
+          <div>
+            <label className="block text-sm font-medium mb-1">고객사</label>
+            {!isDirectInput ? (
+              <div className="flex gap-2">
+                <select
+                  value={selectedCompanyId}
+                  onChange={e => setSelectedCompanyId(e.target.value)}
+                  className="flex-1 px-3 py-2 border rounded"
+                >
+                  <option value="">고객사 선택</option>
+                  {companies.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {userDefaultCompany?.id === c.id ? '(기본)' : ''}
+                    </option>
+                  ))}
+                  <option value="__direct__">직접 입력</option>
+                </select>
+                <button 
+                  type="button" 
+                  onClick={() => { setIsDirectInput(true); setSelectedCompanyId(''); }}
+                  className="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                >
+                  직접입력
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="고객사명 직접 입력"
+                  className="flex-1 px-3 py-2 border rounded"
+                  value={companyName}
+                  onChange={e => setCompanyName(e.target.value)}
+                />
+                <button 
+                  type="button" 
+                  onClick={() => { setIsDirectInput(false); setCompanyName(''); if (userDefaultCompany) setSelectedCompanyId(userDefaultCompany.id); }}
+                  className="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                >
+                  선택모드
+                </button>
+              </div>
+            )}
+          </div>
           {/* CC 입력 */}
           <div>
             <div className="flex gap-2 mb-2">

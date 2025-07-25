@@ -19,7 +19,7 @@ async function main() {
     }
     const hashed = await (0, password_1.hashPassword)(password);
     await prisma.user.create({
-        data: { email, password: hashed, name, role: client_1.Role.ADMIN, invited: false }
+        data: { email, password: hashed, name, role: client_1.Role.ADMIN }
     });
     console.log('관리자 계정이 생성되었습니다.');
     process.exit(0);

@@ -40,13 +40,26 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res) => {
   }
 });
 
+// 고객사 목록 조회 (티켓 생성시 드롭다운용)
+router.get('/companies', authenticateJWT, async (req: AuthRequest, res) => {
+  try {
+    const companies = await prisma.company.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true }
+    });
+    res.json({ companies });
+  } catch (e: any) {
+    res.status(400).json({ message: e.message });
+  }
+});
+
 // 티켓 생성 (파일 업로드 지원)
 router.post('/', authenticateJWT, upload.single('file'), async (req: AuthRequest, res) => {
   console.log('POST /tickets', req.body, req.user, req.file);
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: '로그인이 필요합니다.' });
-    const { title, content, cc, companyId } = req.body;
+    const { title, content, cc, companyName } = req.body;
     if (!title || !content) return res.status(400).json({ message: '제목과 내용을 입력하세요.' });
     let ccList: string[] = [];
     if (cc) {
@@ -56,6 +69,22 @@ router.post('/', authenticateJWT, upload.single('file'), async (req: AuthRequest
       } catch {
         return res.status(400).json({ message: 'cc는 이메일 배열(JSON)이어야 합니다.' });
       }
+    }
+    
+    // 사용자의 기본 고객사 조회
+    const currentUser = await prisma.user.findUnique({ 
+      where: { id: userId }, 
+      include: { company: true } 
+    });
+    
+    // 고객사 처리: companyName이 있으면 사용, 없으면 사용자 기본 고객사 사용
+    let companyId = currentUser?.companyId || null;
+    if (companyName && companyName.trim()) {
+      let company = await prisma.company.findUnique({ where: { name: companyName.trim() } });
+      if (!company) {
+        company = await prisma.company.create({ data: { name: companyName.trim() } });
+      }
+      companyId = company.id;
     }
     // ticketNo 생성: TKT-YYYYMMDD-0001
     const today = new Date();
@@ -77,7 +106,7 @@ router.post('/', authenticateJWT, upload.single('file'), async (req: AuthRequest
         userId,
         status: 'OPEN',
         ccEmails: ccList,
-        companyId: companyId || null,
+        companyId,
       },
       include: {
         company: { select: { name: true } },
@@ -126,7 +155,8 @@ router.get('/:id', authenticateJWT, async (req: AuthRequest, res) => {
       where: { id: req.params.id },
       include: {
         files: true,
-        company: { select: { name: true } },
+        company: { select: { id: true, name: true } },
+        user: { select: { company: { select: { id: true, name: true } } } }
       },
     });
     if (!ticket) return res.status(404).json({ message: '티켓을 찾을 수 없습니다.' });

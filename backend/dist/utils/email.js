@@ -66,9 +66,7 @@ async function getUserNotificationEmails(userId) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user)
         return [];
-    if (!user.emailNotificationsEnabled)
-        return [];
-    const emails = [user.email, ...(user.extraEmails || [])];
+    const emails = [user.email];
     // 중복 제거
     return Array.from(new Set(emails.filter(Boolean)));
 }

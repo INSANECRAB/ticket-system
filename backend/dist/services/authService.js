@@ -70,7 +70,6 @@ async function acceptInvite(token, password) {
             data: {
                 email: payload.email,
                 role: payload.role,
-                invited: false,
                 password: hashed
             }
         });
@@ -100,7 +99,7 @@ function isValidPassword(pw) {
 }
 async function login(email, password) {
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || user.invited)
+    if (!user)
         throw new Error('가입되지 않은 사용자입니다.');
     if (!user.password)
         throw new Error('비밀번호가 설정되지 않았습니다.');
@@ -127,10 +126,10 @@ async function resetPassword(token, password) {
     const payload = (0, jwt_1.verifyToken)(token);
     if (payload.type !== 'reset')
         throw new Error('유효하지 않은 토큰입니다.');
-    const user = await prisma.user.findUnique({ where: { id: Number(payload.id) } });
+    const user = await prisma.user.findUnique({ where: { id: payload.id } });
     if (!user)
         throw new Error('가입되지 않은 사용자입니다.');
     const hashed = await (0, password_1.hashPassword)(password);
-    await prisma.user.update({ where: { id: user.id }, data: { password: hashed, invited: false } });
+    await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
     return { message: '비밀번호가 재설정되었습니다.' };
 }

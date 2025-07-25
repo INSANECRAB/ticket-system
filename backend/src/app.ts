@@ -8,6 +8,7 @@ import userRouter from './routes/user';
 import ticketRouter from './routes/ticket';
 import commentRouter from './routes/comment';
 import emailTemplateRouter from './routes/emailTemplate';
+import companyRouter from './routes/company';
 import { uploadFileToMinio } from './utils/minio';
 import { sendMail } from './utils/email';
 
@@ -25,6 +26,7 @@ app.use('/users', userRouter);
 app.use('/tickets', ticketRouter);
 app.use('/comments', commentRouter);
 app.use('/email-template', emailTemplateRouter);
+app.use('/companies', companyRouter);
 
 app.get('/health', (req, res) => res.send('OK'));
 

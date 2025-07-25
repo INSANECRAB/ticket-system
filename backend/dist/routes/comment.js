@@ -9,7 +9,7 @@ const prisma = new client_1.PrismaClient();
 // 댓글 목록 조회 (티켓별)
 router.get('/ticket/:ticketId', auth_1.authenticateJWT, async (req, res) => {
     try {
-        const ticketId = Number(req.params.ticketId);
+        const ticketId = req.params.ticketId;
         const comments = await prisma.comment.findMany({
             where: { ticketId },
             orderBy: { createdAt: 'asc' },
@@ -24,7 +24,7 @@ router.get('/ticket/:ticketId', auth_1.authenticateJWT, async (req, res) => {
 // 댓글 생성
 router.post('/', auth_1.authenticateJWT, async (req, res) => {
     try {
-        const userId = req.user?.id ? Number(req.user.id) : undefined;
+        const userId = req.user?.id;
         if (!userId)
             return res.status(401).json({ message: '로그인이 필요합니다.' });
         const { ticketId, content } = req.body;
@@ -33,20 +33,20 @@ router.post('/', auth_1.authenticateJWT, async (req, res) => {
         const comment = await prisma.comment.create({
             data: {
                 content,
-                ticketId: Number(ticketId),
+                ticketId: ticketId,
                 userId,
             },
             include: { user: true },
         });
         // === 이메일 알림 ===
         try {
-            const ticket = await prisma.ticket.findUnique({ where: { id: Number(ticketId) } });
+            const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
             if (ticket) {
                 const toList = await (0, email_1.getUserNotificationEmails)(ticket.userId);
-                const ccEmails = ticket.cc && ticket.cc.length > 0 ? ticket.cc : undefined;
+                const ccEmails = ticket.ccEmails && ticket.ccEmails.length > 0 ? ticket.ccEmails : undefined;
                 if (toList.length > 0) {
                     const subject = `[티켓 댓글] ${ticket.title}`;
-                    const html = `<div><b>티켓에 댓글이 등록되었습니다.</b><br/>제목: ${ticket.title}<br/>고객사명: ${ticket.companyName || '-'}<br/><br/><b>댓글:</b><br/>${content}<br/><br/>작성자: ${comment.user.name || comment.user.email}<br/>작성일: ${new Date(comment.createdAt).toLocaleString('ko-KR')}</div>`;
+                    const html = `<div><b>티켓에 댓글이 등록되었습니다.</b><br/>제목: ${ticket.title}<br/>고객사명: ${ticket.companyId || '-'}<br/><br/><b>댓글:</b><br/>${content}<br/><br/>작성자: ${comment.user.name || comment.user.email}<br/>작성일: ${new Date(comment.createdAt).toLocaleString('ko-KR')}</div>`;
                     await (0, email_1.sendMail)({ to: toList, cc: ccEmails, subject, html });
                 }
             }
@@ -64,7 +64,7 @@ router.post('/', auth_1.authenticateJWT, async (req, res) => {
 // 댓글 수정
 router.put('/:id', auth_1.authenticateJWT, async (req, res) => {
     try {
-        const commentId = Number(req.params.id);
+        const commentId = req.params.id;
         const { content } = req.body;
         if (!content)
             return res.status(400).json({ message: '내용을 입력하세요.' });
@@ -82,7 +82,7 @@ router.put('/:id', auth_1.authenticateJWT, async (req, res) => {
 // 댓글 삭제
 router.delete('/:id', auth_1.authenticateJWT, async (req, res) => {
     try {
-        const commentId = Number(req.params.id);
+        const commentId = req.params.id;
         await prisma.comment.delete({ where: { id: commentId } });
         res.json({ ok: true });
     }

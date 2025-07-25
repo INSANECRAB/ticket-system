@@ -13,6 +13,7 @@
 ## 주요 기능
 - 이메일 초대 기반 회원가입 및 비밀번호 재설정
 - 유저 권한 관리(관리자/상담원/고객)
+- 고객사 관리 시스템 (사용자별 고객사 할당, 상세정보 관리)
 - 실시간 채팅 및 파일 첨부(채팅/티켓)
 - 티켓 생성/업데이트 시 이메일 알림(첨부파일 포함)
 - 고유 티켓 번호 자동 생성
@@ -73,6 +74,7 @@ A modern ticket system for customer support. Provides key features including ema
 ## Key Features
 - Email invitation-based registration and password reset
 - User permission management (admin/agent/customer)
+- Company management system (user-company assignment, detailed company info)
 - Real-time chat and file attachments (chat/tickets)
 - Email notifications on ticket creation/updates (with attachments)
 - Automatic unique ticket number generation

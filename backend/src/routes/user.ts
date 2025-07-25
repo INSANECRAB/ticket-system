@@ -10,7 +10,7 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res) => {
   try {
     if (req.user?.role !== 'ADMIN') return res.status(403).json({ message: '권한이 없습니다.' });
     const users = await prisma.user.findMany({
-      select: { id: true, email: true, name: true, role: true, createdAt: true }
+      select: { id: true, email: true, name: true, role: true, createdAt: true, company: { select: { id: true, name: true } } }
     });
     res.json({ users });
   } catch (e: any) {
@@ -43,6 +43,23 @@ router.put('/:id/role', authenticateJWT, async (req: AuthRequest, res) => {
     const { role } = req.body;
     if (!role) return res.status(400).json({ message: '권한 필수' });
     const user = await prisma.user.update({ where: { id: userId }, data: { role } });
+    res.json({ user });
+  } catch (e: any) {
+    res.status(400).json({ message: e.message });
+  }
+});
+
+// 사용자 고객사 할당 (관리자만)
+router.put('/:id/company', authenticateJWT, async (req: AuthRequest, res) => {
+  try {
+    if (req.user?.role !== 'ADMIN') return res.status(403).json({ message: '권한이 없습니다.' });
+    const userId = req.params.id;
+    const { companyId } = req.body;
+    const user = await prisma.user.update({ 
+      where: { id: userId }, 
+      data: { companyId: companyId || null },
+      include: { company: { select: { id: true, name: true } } }
+    });
     res.json({ user });
   } catch (e: any) {
     res.status(400).json({ message: e.message });

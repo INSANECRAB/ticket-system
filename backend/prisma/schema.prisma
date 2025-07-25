@@ -14,13 +14,17 @@ enum Role {
 }
 
 model Company {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  domain    String?  // 이메일 도메인(@ 뒤)
-  users     User[]   // 1:N 관계
-  tickets   Ticket[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String   @unique
+  domain      String?  // 이메일 도메인(@ 뒤)
+  contact     String?  // 기본 연락처
+  contractInfo String? // 계약 정보
+  supportType String?  // 지원 형태 (POC, 기술지원, Pre-Sales, 초기계약, 중기계약, 단기계약 등)
+  description String?  // 추가 설명
+  users       User[]   // 1:N 관계
+  tickets     Ticket[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model User {

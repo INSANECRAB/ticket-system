@@ -10,6 +10,7 @@ interface User {
   role: string;
   invited: boolean;
   createdAt: string;
+  company?: { id: string; name: string };
 }
 
 interface Invite {
@@ -19,6 +20,16 @@ interface Invite {
   invitedAt: string;
   accepted: boolean;
   acceptedAt?: string;
+}
+
+interface Company {
+  id: string;
+  name: string;
+  contact?: string;
+  contractInfo?: string;
+  supportType?: string;
+  description?: string;
+  _count: { users: number; tickets: number };
 }
 
 export default function AdminPage() {
@@ -39,6 +50,10 @@ export default function AdminPage() {
   const [templateSuccess, setTemplateSuccess] = useState('');
   const [deleteMessage, setDeleteMessage] = useState<{text: string, color: string} | null>(null);
   const [invites, setInvites] = useState<Invite[]>([]);
+  const [activeTab, setActiveTab] = useState('users');
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyForm, setCompanyForm] = useState({ name: '', contact: '', contractInfo: '', supportType: '', description: '' });
+  const [editingCompany, setEditingCompany] = useState<string | null>(null);
 
   // 사용자 목록 새로고침 함수
   const fetchUsersAndInvites = () => {
@@ -47,15 +62,18 @@ export default function AdminPage() {
     setFetchError('');
     Promise.all([
       api.get('/users', { headers: { Authorization: `Bearer ${token}` } }),
-      api.get('/users/invites', { headers: { Authorization: `Bearer ${token}` } })
-    ]).then(([usersRes, invitesRes]) => {
+      api.get('/users/invites', { headers: { Authorization: `Bearer ${token}` } }),
+      api.get('/companies', { headers: { Authorization: `Bearer ${token}` } })
+    ]).then(([usersRes, invitesRes, companiesRes]) => {
       setUsers(Array.isArray(usersRes.data?.users) ? usersRes.data.users : []);
       setInvites(Array.isArray(invitesRes.data?.invites) ? invitesRes.data.invites : []);
+      setCompanies(Array.isArray(companiesRes.data?.companies) ? companiesRes.data.companies : []);
       setLoading(false);
     }).catch((e) => {
       setFetchError(e?.response?.data?.message || '데이터를 불러오지 못했습니다.');
       setUsers([]);
       setInvites([]);
+      setCompanies([]);
       setLoading(false);
     });
   };
@@ -142,6 +160,37 @@ export default function AdminPage() {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, role: newRole } : u));
   };
 
+  const handleCompanyAssign = async (userId: number, companyId: string) => {
+    await api.put(`/users/${userId}/company`, { companyId: companyId || null }, { headers: { Authorization: `Bearer ${token}` } });
+    fetchUsersAndInvites();
+  };
+
+  const handleCompanySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingCompany) {
+        await api.put(`/companies/${editingCompany}`, companyForm, { headers: { Authorization: `Bearer ${token}` } });
+      } else {
+        await api.post('/companies', companyForm, { headers: { Authorization: `Bearer ${token}` } });
+      }
+      setCompanyForm({ name: '', contact: '', contractInfo: '', supportType: '', description: '' });
+      setEditingCompany(null);
+      fetchUsersAndInvites();
+    } catch (e: any) {
+      alert(e.response?.data?.message || '오류 발생');
+    }
+  };
+
+  const handleCompanyDelete = async (id: string) => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      await api.delete(`/companies/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      fetchUsersAndInvites();
+    } catch (e: any) {
+      alert(e.response?.data?.message || '삭제 실패');
+    }
+  };
+
   const handleDeleteInvite = async (inviteId: number) => {
     if (!window.confirm('정말 초대 내역을 삭제하시겠습니까?')) return;
     try {
@@ -167,17 +216,38 @@ export default function AdminPage() {
       createdAt: user?.createdAt || invite?.invitedAt || '',
       status: user ? '등록완료' : '초대메일 발송완료',
       id: user?.id || invite?.id,
-      isUser: !!user
+      isUser: !!user,
+      company: user?.company
     };
   });
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto bg-white rounded shadow p-8 mt-8">
-        <h1 className="text-2xl font-bold mb-6">사용자 관리</h1>
+      <div className="max-w-4xl mx-auto bg-white rounded shadow p-8 mt-8">
+        <h1 className="text-2xl font-bold mb-6">관리자 페이지</h1>
+        
+        {/* 탭 메뉴 */}
+        <div className="flex mb-6 border-b">
+          <button 
+            className={`px-4 py-2 cursor-pointer ${activeTab === 'users' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600 hover:text-blue-500'}`}
+            onClick={() => setActiveTab('users')}
+          >
+            사용자 관리
+          </button>
+          <button 
+            className={`px-4 py-2 cursor-pointer ${activeTab === 'companies' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600 hover:text-blue-500'}`}
+            onClick={() => setActiveTab('companies')}
+          >
+            고객사 관리
+          </button>
+        </div>
+        
         {deleteMessage && (
           <div className={`mb-4 text-${deleteMessage.color}-600 font-semibold`}>{deleteMessage.text}</div>
         )}
+        
+        {activeTab === 'users' && (
+        <>
         {/* 사용자 초대 폼 */}
         <form onSubmit={handleInvite} className="flex gap-2 mb-6 items-end">
           <div className="flex-1">
@@ -233,9 +303,11 @@ export default function AdminPage() {
               <tr className="bg-gray-100">
                 <th className="py-2 px-3">이메일</th>
                 <th className="py-2 px-3">이름</th>
+                <th className="py-2 px-3">고객사</th>
                 <th className="py-2 px-3">권한</th>
                 <th className="py-2 px-3">가입/초대일</th>
                 <th className="py-2 px-3">상태</th>
+                <th className="py-2 px-3">고객사 할당</th>
                 <th className="py-2 px-3">관리</th>
               </tr>
             </thead>
@@ -244,6 +316,7 @@ export default function AdminPage() {
                 <tr key={u.email} className="border-b">
                   <td className="py-2 px-3">{u.email}</td>
                   <td className="py-2 px-3">{u.name}</td>
+                  <td className="py-2 px-3">{u.company?.name || '-'}</td>
                   <td className="py-2 px-3">
                     <select
                       value={u.role}
@@ -265,6 +338,18 @@ export default function AdminPage() {
                     {u.status === '등록완료' ? <span className="text-green-600">등록완료</span> : <span className="text-blue-600">초대메일 발송완료</span>}
                   </td>
                   <td className="py-2 px-3">
+                    {u.isUser && (
+                      <select 
+                        value={u.company?.id || ''} 
+                        onChange={e => handleCompanyAssign(u.id as number, e.target.value)}
+                        className="border rounded px-2 py-1 text-xs mr-2"
+                      >
+                        <option value="">미지정</option>
+                        {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    )}
+                  </td>
+                  <td className="py-2 px-3">
                     {u.isUser && u.id !== undefined ? (
                       <button onClick={() => handleDelete(u.id as number)} className="text-red-600 hover:underline">삭제</button>
                     ) : !u.isUser && u.id !== undefined ? (
@@ -277,6 +362,100 @@ export default function AdminPage() {
           </table>
         ) : (
           <div className="text-center text-gray-500">표시할 사용자가 없습니다.</div>
+        )}
+        </>
+        )}
+        
+        {activeTab === 'companies' && (
+        <>
+        <form onSubmit={handleCompanySubmit} className="mb-6 p-4 border rounded">
+          <h3 className="font-bold mb-4">{editingCompany ? '고객사 수정' : '고객사 추가'}</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <input 
+              placeholder="고객사명" 
+              value={companyForm.name} 
+              onChange={e => setCompanyForm({...companyForm, name: e.target.value})} 
+              className="border px-3 py-2 rounded" 
+              required 
+            />
+            <input 
+              placeholder="기본 연락처" 
+              value={companyForm.contact} 
+              onChange={e => setCompanyForm({...companyForm, contact: e.target.value})} 
+              className="border px-3 py-2 rounded" 
+            />
+            <input 
+              placeholder="계약 정보" 
+              value={companyForm.contractInfo} 
+              onChange={e => setCompanyForm({...companyForm, contractInfo: e.target.value})} 
+              className="border px-3 py-2 rounded" 
+            />
+            <select 
+              value={companyForm.supportType} 
+              onChange={e => setCompanyForm({...companyForm, supportType: e.target.value})} 
+              className="border px-3 py-2 rounded"
+            >
+              <option value="">지원 형태 선택</option>
+              <option value="POC">POC</option>
+              <option value="기술지원">기술지원</option>
+              <option value="Pre-Sales">Pre-Sales</option>
+              <option value="초기계약">초기계약</option>
+              <option value="중기계약">중기계약</option>
+              <option value="단기계약">단기계약</option>
+            </select>
+          </div>
+          <textarea 
+            placeholder="추가 설명" 
+            value={companyForm.description} 
+            onChange={e => setCompanyForm({...companyForm, description: e.target.value})} 
+            className="w-full border px-3 py-2 rounded mt-4" 
+            rows={3}
+          />
+          <div className="mt-4">
+            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded mr-2">
+              {editingCompany ? '수정' : '추가'}
+            </button>
+            {editingCompany && (
+              <button type="button" onClick={() => { setEditingCompany(null); setCompanyForm({ name: '', contact: '', contractInfo: '', supportType: '', description: '' }); }} className="bg-gray-300 px-4 py-2 rounded">
+                취소
+              </button>
+            )}
+          </div>
+        </form>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="py-2 px-3">고객사명</th>
+              <th className="py-2 px-3">연락처</th>
+              <th className="py-2 px-3">지원형태</th>
+              <th className="py-2 px-3">사용자수</th>
+              <th className="py-2 px-3">티켓수</th>
+              <th className="py-2 px-3">관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            {companies.map(c => (
+              <tr key={c.id} className="border-b">
+                <td className="py-2 px-3 font-semibold">{c.name}</td>
+                <td className="py-2 px-3">{c.contact || '-'}</td>
+                <td className="py-2 px-3">{c.supportType || '-'}</td>
+                <td className="py-2 px-3">{c._count.users}</td>
+                <td className="py-2 px-3">{c._count.tickets}</td>
+                <td className="py-2 px-3">
+                  <button 
+                    onClick={() => { setEditingCompany(c.id); setCompanyForm({ name: c.name, contact: c.contact || '', contractInfo: c.contractInfo || '', supportType: c.supportType || '', description: c.description || '' }); }} 
+                    className="text-blue-600 hover:underline mr-2"
+                  >
+                    수정
+                  </button>
+                  <button onClick={() => handleCompanyDelete(c.id)} className="text-red-600 hover:underline">삭제</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        </>
         )}
       </div>
     </Layout>
