@@ -11,6 +11,8 @@ services:
       - '5432:5432'
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
 
   minio:
     image: minio/minio

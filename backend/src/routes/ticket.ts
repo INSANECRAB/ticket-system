@@ -16,9 +16,23 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res) => {
     const userId = req.user?.id;
     const isAdmin = req.user?.role === 'ADMIN';
     let where = {};
+    
     if (!isAdmin && userId) {
-      where = { userId };
+      // 사용자의 고객사 정보 조회
+      const currentUser = await prisma.user.findUnique({ 
+        where: { id: userId }, 
+        select: { companyId: true } 
+      });
+      
+      if (currentUser?.companyId) {
+        // 같은 고객사의 모든 티켓 조회
+        where = { companyId: currentUser.companyId };
+      } else {
+        // 고객사가 없으면 본인이 생성한 티켓만
+        where = { userId };
+      }
     }
+    
     let tickets = await prisma.ticket.findMany({
       orderBy: { createdAt: 'desc' },
       where,
@@ -43,11 +57,26 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res) => {
 // 고객사 목록 조회 (티켓 생성시 드롭다운용)
 router.get('/companies', authenticateJWT, async (req: AuthRequest, res) => {
   try {
-    const companies = await prisma.company.findMany({
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true }
-    });
-    res.json({ companies });
+    const userId = req.user?.id;
+    const isAdmin = req.user?.role === 'ADMIN';
+    
+    if (isAdmin) {
+      // 관리자는 모든 고객사 조회
+      const companies = await prisma.company.findMany({
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true }
+      });
+      res.json({ companies });
+    } else {
+      // 일반 사용자는 자신의 고객사만 조회
+      const currentUser = await prisma.user.findUnique({ 
+        where: { id: userId }, 
+        include: { company: { select: { id: true, name: true } } }
+      });
+      
+      const companies = currentUser?.company ? [currentUser.company] : [];
+      res.json({ companies });
+    }
   } catch (e: any) {
     res.status(400).json({ message: e.message });
   }
@@ -230,6 +259,25 @@ router.put('/:id', authenticateJWT, async (req: AuthRequest, res) => {
     }
     // === // ===
     res.json({ ticket });
+  } catch (e: any) {
+    res.status(400).json({ message: e.message });
+  }
+});
+
+// 메인 채팅 메시지 조회 (일반 채팅용)
+router.get('/main/messages', authenticateJWT, async (req: AuthRequest, res) => {
+  try {
+    const messages = await prisma.message.findMany({
+      where: { ticketId: 'main' },
+      orderBy: { createdAt: 'asc' },
+      include: { user: true },
+    });
+    res.json({ messages: messages.map(m => ({
+      id: m.id,
+      user: m.user?.email,
+      content: m.content,
+      createdAt: m.createdAt,
+    })) });
   } catch (e: any) {
     res.status(400).json({ message: e.message });
   }

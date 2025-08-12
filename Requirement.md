@@ -11,10 +11,13 @@
   - 실시간 채팅
   - 파일 첨부
   - 이메일 알림
-  - 고유 티켓 번호
+  - 고유 티켓 번호 (TKT-YYYYMMDD-0001 형식)
+  - CC 이메일 기능
+  - 이메일 템플릿 관리
 - **관리자 전용**
   - 사용자 관리(목록, 초대, 권한 변경, 삭제)
   - 초대 메일 템플릿 관리
+  - 고객사 관리
 
 ---
 
@@ -36,10 +39,12 @@
 ### [O] 실시간 채팅/파일 첨부
 - [O] Socket.io 기반 실시간 채팅
 - [O] 파일 첨부 및 MinIO 연동
+- [O] 파일 크기 제한 및 타입 검증
 
 ### [O] 고유 티켓 번호/기본 티켓 기능
 - [O] 티켓 생성/조회/상태 관리
-- [O] 고유 티켓 번호 생성
+- [O] 고유 티켓 번호 생성 (TKT-YYYYMMDD-0001 형식)
+- [O] 일별 순차 번호 부여 시스템
 
 ### [O] 관리자 UX 개선
 - [O] 성공/실패 메시지, 상태별 구분, 자동 갱신 등
@@ -50,6 +55,24 @@
 - [O] 사용자별 고객사 할당 기능
 - [O] 티켓 생성 시 사용자 기본 고객사 자동 선택
 - [O] 고객사 드롭다운 선택 및 직접 입력 옵션
+- [O] 관리자는 모든 고객사 조회, 일반 사용자는 자신의 고객사만 조회
+
+### [O] CC 이메일 기능
+- [O] 티켓 생성 시 참조자 이메일 추가 가능
+- [O] JSON 배열 형태로 다중 이메일 지원
+- [O] 이메일 알림 시 CC 수신자 포함
+- [O] 협업 효율성 향상을 위한 핵심 기능
+
+### [O] 이메일 템플릿 관리
+- [O] 관리자 전용 이메일 템플릿 관리 시스템
+- [O] 초대 이메일 템플릿 커스터마이징 가능
+- [O] 기본 템플릿 자동 생성 기능
+- [O] 템플릿 CRUD API 구현
+
+### [O] PostgreSQL 설정 최적화
+- [O] postgresql.conf 파일 추가로 DB 성능 최적화
+- [O] Docker Compose에서 PostgreSQL 설정 적용
+- [O] 실서비스 환경을 고려한 성능 튜닝
 
 ---
 
@@ -59,6 +82,10 @@
 - [O] 초대/가입/삭제 등 액션에 대해 자동 갱신 및 피드백 정상 동작
 - [O] 초대 메일 템플릿이 없을 때 404, 잘못된 토큰/가입 시 400/500 등 예외 처리 확인
 - [O] curl로 백엔드 API 직접 호출 시 정상 동작 확인
+- [O] 티켓 번호 자동 생성 시스템 정상 동작 확인
+- [O] CC 이메일 기능 정상 동작 확인
+- [O] 고객사 관리 시스템 정상 동작 확인
+- [O] 이메일 템플릿 관리 시스템 정상 동작 확인
 - [△] 프론트엔드에서 accept-invite(가입) 시 500 에러 → body 전달/파싱 문제 진단 및 수정 중
 - [△] 일부 React minified error(418/423/425) → API 실패 시 방어 코드 추가 필요
 
@@ -71,17 +98,45 @@
 - [ ] 테스트 자동화(e2e, 통합테스트 등) 및 문서화
 - [ ] 실서비스 배포 환경에서의 보안/환경 변수 점검
 - [ ] 기타 실무적 진단/운영 가이드 추가
+- [ ] 티켓 상태 변경 시 이메일 알림 기능 강화
+- [ ] 파일 업로드 시 보안 검증 강화
 
 ---
 
 ## 5. 참고/특이사항
 - 초대/가입/삭제/상태관리 등 관리자 중심의 핵심 기능과 UX는 대부분 구현 및 개선 완료
 - Invite 테이블 도입으로 초대 상태 관리까지 완성
+- 티켓 번호 자동 생성 시스템으로 실무적인 티켓 관리 가능
+- CC 이메일 기능으로 협업 효율성 향상
+- 이메일 템플릿 관리로 커스터마이징 가능
 - 일부 API(body 파싱 등)와 프론트 방어 코드, 에러 UX 등은 추가 개선 필요 
 
 ---
 
-## 6. 최근 추가/진행 중 이슈 및 개선 내역 (2024.07)
+## 6. 최근 추가/진행 중 이슈 및 개선 내역 (2025.07)
+
+### [O] 티켓 번호 자동 생성 시스템 (2025.07)
+- 형식: `TKT-YYYYMMDD-0001` (예: TKT-202412250001)
+- 일별 순차 번호 부여
+- 티켓 생성 시 자동으로 고유 번호 생성
+- 기존 uuid 기반에서 실무적인 날짜+일련번호 형식으로 변경
+
+### [O] CC 이메일 기능 (2025.07)
+- 티켓 생성 시 참조자 이메일 추가 가능
+- JSON 배열 형태로 다중 이메일 지원
+- 이메일 알림 시 CC 수신자 포함
+- 협업 효율성 향상을 위한 핵심 기능
+
+### [O] 이메일 템플릿 관리 시스템 (2025.07)
+- 관리자 전용 이메일 템플릿 관리 시스템
+- 초대 이메일 템플릿 커스터마이징 가능
+- 기본 템플릿 자동 생성 기능
+- 템플릿 CRUD API 구현
+
+### [O] PostgreSQL 설정 최적화 (2025.07)
+- postgresql.conf 파일 추가로 DB 성능 최적화
+- Docker Compose에서 PostgreSQL 설정 적용
+- 실서비스 환경을 고려한 성능 튜닝
 
 ### [O] 도커/환경변수/네트워크 문제 해결
 - 프론트엔드가 도커 네트워크 이름(backend)로 API 요청 시 브라우저에서 인식 불가 → .env, docker-compose에서 localhost로 지정
@@ -90,7 +145,7 @@
 ### [O] Prisma 마이그레이션/DB 스키마 변경
 - id, ticketId, userId 등 타입 Int→String(uuid)로 변경, 외래키 타입 불일치 마이그레이션 에러 해결
 - 기존 데이터가 남아있을 때 NOT NULL 컬럼 추가 시 SQL로 직접 컬럼 추가/업데이트/제약 적용
-- ticketNo, extraEmails, url 등 컬럼 추가 및 마이그레이션 적용
+- ticketNo, ccEmails, companyId 등 컬럼 추가 및 마이그레이션 적용
 
 ### [O] 관리자/유저/티켓 데이터 문제
 - User 테이블이 비어있거나, admin 계정 role이 CUSTOMER로 잘못 저장되어 관리자 메뉴가 안 보임 → SQL로 직접 admin 계정 생성/role 변경
@@ -98,7 +153,6 @@
 
 ### [O] 티켓/상세/목록/상태/CC/고객사명 개선
 - 티켓 상세/목록에서 ticketNo, status, company.name, ccEmails 등 명확히 표시
-- ticketNo를 uuid 기반이 아닌 날짜+일련번호(TKT-YYYYMMDD-0001)로 생성/저장
 - 티켓 상세에서 상태 변경 드롭다운/버튼, CC 표시/추가/저장 UI, 고객사명 클릭 시 이동, 상태 변경시 알림(Toast) 등 프론트엔드 UI 자동 개선
 - CC 입력란 자동완성(dropdown, 기존 유저 이메일 추천) 기능 추가
 - 상태 변경/내용 수정 시 관련자(티켓 owner, CC, 댓글/메시지 참여자 등)에게 알림 메일 발송, 메일 본문에 티켓 전체 내용, 상태 변경 내역, 댓글/메시지 히스토리 포함
@@ -137,10 +191,13 @@
   - Real-time chat
   - File attachments
   - Email notifications
-  - Unique ticket numbers
+  - Unique ticket numbers (TKT-YYYYMMDD-0001 format)
+  - CC email functionality
+  - Email template management
 - **Admin Only**
   - User management (list, invite, permission change, delete)
   - Invitation email template management
+  - Company management
 
 ---
 
@@ -162,13 +219,38 @@
 ### [O] Real-time Chat/File Attachments
 - [O] Socket.io-based real-time chat
 - [O] File attachments and MinIO integration
+- [O] File size limits and type validation
 
 ### [O] Unique Ticket Numbers/Basic Ticket Features
 - [O] Ticket creation/inquiry/status management
-- [O] Unique ticket number generation
+- [O] Unique ticket number generation (TKT-YYYYMMDD-0001 format)
+- [O] Daily sequential numbering system
 
 ### [O] Admin UX Improvements
 - [O] Success/failure messages, status-based categorization, automatic refresh, etc.
+
+### [O] Company Management System
+- [O] Company model expansion (added contact, contractInfo, supportType, description fields)
+- [O] Added "Company Management" tab to admin page (Company CRUD, user assignment)
+- [O] User-specific default company setting and automatic application when creating tickets
+- [O] Company dropdown on ticket creation page (default value display, direct input option)
+- [O] Admins can view all companies, regular users can only view their assigned company
+
+### [O] CC Email Functionality
+- [O] Add recipient emails when creating tickets
+- [O] Support for multiple emails in JSON array format
+- [O] Include CC recipients in email notifications
+
+### [O] Email Template Management
+- [O] Admin-only email template management system
+- [O] Customizable invitation email templates
+- [O] Automatic default template generation
+- [O] Template CRUD API implementation
+
+### [O] PostgreSQL Configuration Optimization
+- [O] Added postgresql.conf file for DB performance optimization
+- [O] Applied PostgreSQL settings in Docker Compose
+- [O] Performance tuning considering production environment
 
 ---
 
@@ -178,6 +260,10 @@
 - [O] Normal operation of automatic refresh and feedback for actions like invite/signup/delete
 - [O] Exception handling confirmed: 404 when no invitation email template, 400/500 for invalid tokens/signup
 - [O] Normal operation confirmed when calling backend API directly with curl
+- [O] Automatic ticket number generation system confirmed working
+- [O] CC email functionality confirmed working
+- [O] Company management system confirmed working
+- [O] Email template management system confirmed working
 - [△] 500 error during accept-invite (signup) from frontend → diagnosing and fixing body transmission/parsing issues
 - [△] Some React minified errors (418/423/425) → need to add defensive code for API failures
 
@@ -190,17 +276,45 @@
 - [ ] Test automation (e2e, integration tests, etc.) and documentation
 - [ ] Security/environment variable checks in production deployment environment
 - [ ] Additional practical diagnostics/operation guides
+- [ ] Enhance email notification functionality for ticket status changes
+- [ ] Strengthen security validation for file uploads
 
 ---
 
 ## 5. Notes/Special Considerations
 - Most core admin-centered functions and UX for invite/signup/delete/status management are implemented and improved
 - Invitation status management completed with introduction of Invite table
+- Automatic ticket number generation system enables practical ticket management
+- CC email functionality improves collaboration efficiency
+- Email template management enables customization
 - Some APIs (body parsing, etc.) and frontend defensive code, error UX need additional improvements
 
 ---
 
-## 6. Recent Additions/Ongoing Issues and Improvements (2024.07)
+## 6. Recent Additions/Ongoing Issues and Improvements (2025.07)
+
+### [O] Automatic Ticket Number Generation System (2025.07)
+- Format: `TKT-YYYYMMDD-0001` (e.g., TKT-202412250001)
+- Daily sequential numbering
+- Automatic unique number generation when creating tickets
+- Changed from uuid-based to practical date+serial number format
+
+### [O] CC Email Functionality (2025.07)
+- Add recipient emails when creating tickets
+- Support for multiple emails in JSON array format
+- Include CC recipients in email notifications
+- Core functionality for improving collaboration efficiency
+
+### [O] Email Template Management System (2025.07)
+- Admin-only email template management system
+- Customizable invitation email templates
+- Automatic default template generation
+- Template CRUD API implementation
+
+### [O] PostgreSQL Configuration Optimization (2025.07)
+- Added postgresql.conf file for DB performance optimization
+- Applied PostgreSQL settings in Docker Compose
+- Performance tuning considering production environment
 
 ### [O] Docker/Environment Variables/Network Issues Resolved
 - Frontend API requests using Docker network name (backend) not recognized by browser → specified as localhost in .env, docker-compose
@@ -209,7 +323,7 @@
 ### [O] Prisma Migration/DB Schema Changes
 - Changed id, ticketId, userId types from Int→String(uuid), resolved foreign key type mismatch migration errors
 - When existing data remains, directly added columns/updated/applied constraints with SQL for NOT NULL column additions
-- Added ticketNo, extraEmails, url columns and applied migrations
+- Added ticketNo, ccEmails, companyId columns and applied migrations
 
 ### [O] Admin/User/Ticket Data Issues
 - User table empty or admin account role incorrectly saved as CUSTOMER causing admin menu not to show → directly created admin account/changed role with SQL
@@ -217,7 +331,6 @@
 
 ### [O] Ticket/Detail/List/Status/CC/Company Name Improvements
 - Clear display of ticketNo, status, company.name, ccEmails in ticket detail/list
-- Generate/save ticketNo as date+serial number (TKT-YYYYMMDD-0001) instead of uuid-based
 - Frontend UI automatic improvements: status change dropdown/button, CC display/add/save UI, company name click navigation, status change notifications (Toast)
 - Added CC input field autocomplete (dropdown, existing user email recommendations)
 - Send notification emails to related parties (ticket owner, CC, comment/message participants) on status change/content modification, include full ticket content, status change history, comment/message history in email body
@@ -232,3 +345,5 @@
 - Reflect practical requirements like notification emails and history for status changes/content modifications
 - Repetitive improvements: frontend/backend type/field matching, Prisma Client regeneration, npm package type installation
 - Confirm normal operation of additional features like real-time chat, file attachments, email notifications
+- Confirm company management and user assignment functionality
+- Confirm automatic company selection and dropdown functionality when creating tickets
