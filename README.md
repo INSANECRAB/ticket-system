@@ -1,5 +1,5 @@
 # Ticket System
-![tiketsystem](https://github.com/user-attachments/assets/e9aaf727-5d36-44b4-9fe5-104b1f0615e1)
+<img width="862" height="473" alt="ticketsystem_image" src="https://github.com/user-attachments/assets/0fbad9a5-ef5f-4647-a6a5-0b885f61a286" />
 
 
 *For English version, please scroll down.*
