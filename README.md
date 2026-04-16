@@ -1,6 +1,18 @@
-# Ticket System
-<img width="862" height="473" alt="ticketsystem_image" src="https://github.com/user-attachments/assets/0fbad9a5-ef5f-4647-a6a5-0b885f61a286" />
 
+# Ticket System
+<br>
+
+<p align="center">
+  <img width="862" height="473" alt="ticketsystem_image"
+       src="https://github.com/user-attachments/assets/0fbad9a5-ef5f-4647-a6a5-0b885f61a286" />
+</p>
+
+<br>
+
+<p align="center">
+  <img width="1118" height="240" alt="스크린샷"
+       src="https://github.com/user-attachments/assets/4bdbfde2-6dcc-4b11-b9ec-2ee8ed6ea461" />
+</p>
 
 *For English version, please scroll down.*
 
